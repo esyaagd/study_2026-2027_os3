@@ -1,26 +1,28 @@
-COURSE = 
+SRC = presentation.md
+FILES += $(patsubst %.md, %.pdf, $(wildcard *.md))
+FILES += $(patsubst %.md, %.html, $(wildcard *.md))
 
-.PHONY: all clean
+FILTERS =
+PDF_ENGINE =
+PDF_OPTIONS =
+PDF_FORMAT_OPTIONS = -t beamer --slide-level=2
 
-all: help
+FILTERS += --citeproc
+# FILTERS += -F pandoc-crossref
+PDF_ENGINE += --pdf-engine=lualatex
+PDF_OPTIONS += --number-sections
 
-help:
-	@echo 'Usage:'
-	@echo '  make <target>'
-	@echo 
-	@echo 'Targets:'
-	@grep -E '^[a-zA-Z_0-9.-]+:.*?##.*$$' $(MAKEFILE_LIST) | grep -v '###' | sort | cut -d: -f1- | awk 'BEGIN {FS = ":.*?##"}; {printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2}'
-	@grep -E '^###.*' $(MAKEFILE_LIST) | cut -d' ' -f2- | awk 'BEGIN {FS = "###"}; {printf "%s\n", $$1, $$2}'
-	@grep -E '^[a-zA-Z_0-9.-]+:.*?###.*$$' $(MAKEFILE_LIST) | sort | cut -d: -f2- | awk 'BEGIN {FS = ":.*?###"}; {printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2}'
-	@echo
+REVEALJS_THEME = beige
 
-list:	## List of courses
-	@./config/script/list-courses
+%.pdf: %.md
+	-@pandoc "$<" $(FILTERS) $(PDF_ENGINE) $(PDF_OPTIONS) $(PDF_FORMAT_OPTIONS) -o "$@"
 
-prepare:	## Generate directories structure
-	@./config/script/prepare
-	@touch prepare
+%.html: %.md
+	-@pandoc "$<" --embed-resources --standalone -t revealjs -V theme=$(REVEALJS_THEME) -o "$@"
 
-submodule:	## Update submules
-	git submodule update --init --recursive
-	git submodule foreach 'git fetch origin; git checkout $$(git rev-parse --abbrev-ref HEAD); git reset --hard origin/$$(git rev-parse --abbrev-ref HEAD); git submodule update --recursive; git clean -dfx'
+all: $(FILES)
+
+clean:
+	-@rm $(FILES) *~
+
+cleanall: clean
